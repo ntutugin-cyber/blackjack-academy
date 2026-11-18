@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0a0e0c">
+<meta name="description" content="Блэкджек Академия — тёмная 2D-игра с обучением с нуля, разбором каждой раздачи и самообучающейся нейросетью-дилером.">
+<title>♠ Блэкджек Академия — игра, обучение, нейросеть</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700;900&family=Manrope:wght@400;500;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/table.css">
+<link rel="stylesheet" href="css/screens.css">
+</head>
+<body>
+<div class="bg-aurora" aria-hidden="true"></div>
+<div class="bg-grain" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="brand"><span class="brand-suit">♠</span><span class="brand-txt">Блэкджек<em>Академия</em></span></div>
+  <nav class="tabs" role="tablist" aria-label="Экраны">
+    <button class="tab" role="tab" data-screen="game" aria-selected="true">
+      <svg viewBox="0 0 24 24"><rect x="3" y="5" width="12" height="16" rx="2"/><rect x="9" y="3" width="12" height="16" rx="2" fill="var(--topbar-bg)"/></svg><span>Игра</span></button>
+    <button class="tab" role="tab" data-screen="tutorial" aria-selected="false">
+      <svg viewBox="0 0 24 24"><path d="M12 4 2 9l10 5 10-5-10-5Z"/><path d="M6 11v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5"/></svg><span>Обучение</span><b id="tutBadge" class="tut-badge" hidden>✓</b></button>
+    <button class="tab" role="tab" data-screen="nn" aria-selected="false">
+      <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="12" r="2"/><path d="M7 11l3-5M7 13l3 5M14 6l3 5M14 18l3-5"/></svg><span>Нейросеть</span></button>
+  </nav>
+  <div class="top-right">
+    <div class="bank-pill" id="bankPill" title="Ваш банк фишек"><span class="bank-chip"></span><b id="bankrollTop">1 000</b></div>
+    <button class="sound-btn" id="soundBtn" aria-pressed="true" title="Звук (M)">
+      <svg viewBox="0 0 24 24" class="ic-on"><path d="M4 9v6h4l5 4V5L8 9H4Z"/><path d="M16 9c1.5 1.5 1.5 4.5 0 6M18.5 6.5c3 3 3 8 0 11"/></svg>
+      <svg viewBox="0 0 24 24" class="ic-off" hidden><path d="M4 9v6h4l5 4V5L8 9H4Z"/><path d="M16 9l6 6M22 9l-6 6"/></svg>
+      <span>Звук</span></button>
+  </div>
+</header>
+
+<main>
+<!-- ═══════════ ИГРА ═══════════ -->
+<section id="screen-game" class="screen active" role="tabpanel">
+  <div id="gameRoot" data-state="betting">
+  <div class="game-layout">
+    <div class="table-zone">
+      <div class="match-strip">
+        <div class="ms-side you"><i>Вы</i><b id="scoreYou">0</b></div>
+        <div class="ms-mid"><b id="matchInfo">Матч до 5 побед</b><span id="roundInfo">Сделайте ставку</span></div>
+        <div class="ms-side dealer"><i>Дилер</i><b id="scoreDealer">0</b></div>
+      </div>
+
+      <div class="felt" id="felt">
+        <span class="suit-mark sm1">♠</span><span class="suit-mark sm2">♥</span><span class="suit-mark sm3">♦</span><span class="suit-mark sm4">♣</span>
+        <div class="shoe-box" title="Карт в шузе"><span>Шуз</span><div class="shoe-meter"><i id="shoeMeter"></i></div><b id="shoeCount">208</b></div>
+
+        <div class="zone dealer-zone">
+          <div class="zlabel"><span id="dealerName">Дилер · Бот</span><span class="hbadge" id="dealerBadge">—</span><span class="think-badge" id="dealerThink" hidden></span></div>
+          <div class="hand" id="dealerHand"></div>
+        </div>
+
+        <div class="felt-print"><b>БЛЭКДЖЕК ПЛАТИТ 3 : 2</b><i id="feltRule">ДИЛЕР ОБЯЗАН СТОЯТЬ НА 17</i></div>
+        <div class="table-msg" id="tableMsg" aria-live="polite">Соберите ставку фишками и раздавайте карты</div>
+
+        <div class="zone player-zone">
+          <div class="zlabel"><span>Вы</span><span class="hbadge" id="playerBadge">—</span></div>
+          <div class="hand" id="playerHand"></div>
+          <button class="hint-chip" id="hintChip" hidden></button>
+        </div>
+
+        <div class="bet-spot"><div class="bet-chips" id="betChips"></div><div class="bet-label">Ставка <b id="betAmount">0</b></div></div>
+        <canvas id="fx" aria-hidden="true"></canvas>
+      </div>
+
+      <div class="controls" id="controls">
+        <div class="panel-bet" id="panelBet">
+          <div class="chip-row" id="chipRow"></div>
+          <div class="bet-util">
+            <button class="btn btn-ghost btn-sm" id="btnClear">Сброс</button>
+            <button class="btn btn-ghost btn-sm" id="btnRepeat">Повтор</button>
+            <button class="btn btn-ghost btn-sm" id="btnMax">Макс</button>
+            <button class="btn btn-ghost btn-sm" id="btnReloadMini" hidden>+1 000 фишек</button>
+          </div>
+          <button class="btn btn-primary btn-lg" id="btnDeal">Раздать карты <kbd>␣</kbd></button>
+        </div>
+        <div class="panel-act" id="panelAct">
+          <button class="btn act-btn hit" id="btnHit"><b>Ещё</b><i>взять карту</i><kbd>1</kbd></button>
+          <button class="btn act-btn stand" id="btnStand"><b>Хватит</b><i>остановиться</i><kbd>2</kbd></button>
+          <button class="btn act-btn dbl" id="btnDouble"><b>Удвоить</b><i>×2 ставка, 1 карта</i><kbd>3</kbd></button>
+        </div>
+        <div class="panel-done" id="panelDone">
+          <button class="btn btn-primary btn-lg" id="btnNext">Следующая раздача <kbd>␣</kbd></button>
+          <button class="btn btn-primary btn-lg" id="btnMatchDone" hidden>🏆 Итоги матча</button>
+          <button class="btn btn-ghost" id="btnNewMatch" hidden>Новый матч сразу</button>
+        </div>
+      </div>
+
+      <div class="result-card" id="resultPanel" hidden>
+        <div class="result-banner" id="resultBanner" aria-live="polite"><span class="rb-icon" id="rbIcon">★</span><div class="rb-txt"><b id="rbTitle">ПОБЕДА</b><i id="rbHead"></i></div><span class="rb-money" id="rbMoney">+100</span></div>
+        <details class="result-details" id="resultDetails" open>
+          <summary>Подробный разбор раздачи</summary>
+          <div class="report-body" id="resultBody"></div>
+        </details>
+      </div>
+    </div>
+
+    <aside class="side">
+      <div class="panel">
+        <h3 class="p-head">Стол</h3>
+        <div class="seg" id="oppSeg">
+          <button data-opp="bot" class="on">🤖 Бот<i>по правилам</i></button>
+          <button data-opp="nn">🧠 Нейросеть<i>учится играть</i></button>
+        </div>
+        <label class="field">Матч до
+          <select id="targetSel"><option value="3">3 побед</option><option value="5" selected>5 побед</option><option value="7">7 побед</option><option value="10">10 побед</option></select>
+        </label>
+        <label class="switch-row"><span>Подсказки стратегии</span><input type="checkbox" id="hintsToggle" checked><i class="switch"></i></label>
+      </div>
+      <div class="panel">
+        <h3 class="p-head">Статистика сессии</h3>
+        <div class="stat-grid">
+          <div class="stat"><i>Раздач</i><b id="stRounds">0</b></div>
+          <div class="stat win"><i>Побед</i><b id="stWin">0</b></div>
+          <div class="stat lose"><i>Поражений</i><b id="stLoss">0</b></div>
+          <div class="stat"><i>Ничьих</i><b id="stPush">0</b></div>
+          <div class="stat gold"><i>Блэкджеков</i><b id="stBJ">0</b></div>
+          <div class="stat"><i>Лучшая серия</i><b id="stStreak">0</b></div>
+          <div class="stat"><i>Точность решений</i><b id="stAcc">—</b></div>
+          <div class="stat" id="stNetWrap"><i>Итог, фишек</i><b id="stNet">0</b></div>
+        </div>
+        <button class="btn btn-ghost btn-sm wide" id="btnResetStats">Сбросить статистику</button>
+      </div>
+      <div class="panel">
+        <h3 class="p-head">История раздач</h3>
+        <div class="history" id="historyList"><p class="empty">Сыграйте первую раздачу — здесь появится лента с разборами.</p></div>
+        <button class="btn btn-ghost wide" id="btnMatchReport">📋 Итоги текущего матча</button>
+      </div>
+    </aside>
+  </div>
+  </div>
+</section>
+
+<!-- ═══════════ ОБУЧЕНИЕ ═══════════ -->
+<section id="screen-tutorial" class="screen" role="tabpanel" hidden>
+  <div class="tut-head">
+    <div><h1>Академия блэкджека</h1><p>С нуля до первой осознанной победы — 16 коротких шагов.</p></div>
+    <div class="tut-progress"><span id="tutStepLabel">Шаг 1 из 16</span><div class="tp-bar"><i id="tutProgressBar"></i></div></div>
+  </div>
+  <div class="tut-layout">
+    <div class="tut-content panel"><h2 id="tutTitle"></h2><div id="tutContent"></div></div>
+    <div class="tut-stage panel" id="tutStage"></div>
+  </div>
+  <div class="tut-nav">
+    <button class="btn btn-ghost" id="tutPrev">← Назад</button>
+    <div class="tut-dots" id="tutDots"></div>
+    <button class="btn btn-primary" id="tutNext">Дальше →</button>
+  </div>
+</section>
+
+<!-- ═══════════ НЕЙРОСЕТЬ ═══════════ -->
+<section id="screen-nn" class="screen" role="tabpanel" hidden>
+  <div class="screen-head"><h1>Мозг дилера</h1><p>Самообучающаяся сеть: тренируйте, наблюдайте прогресс, сохраняйте веса.</p></div>
+  <div class="nn-grid">
+    <div class="panel nn-brain">
+      <h3 class="p-head">Архитектура <span class="live-dot" id="nnLiveDot"></span></h3>
+      <div class="nn-diagram" id="nnDiagram"></div>
+      <div class="nn-inputs"><b>7 признаков на входе:</b><span>сумма дилера · мягкость дилера · сумма игрока · мягкость игрока · открытая карта · карт у дилера · карт у игрока</span></div>
+      <div class="nn-outs">
+        <div class="nn-out"><i>Ещё</i><div class="obar"><b id="nnOutHit"></b></div><span id="nnOutHitVal">—</span></div>
+        <div class="nn-out"><i>Хватит</i><div class="obar stand"><b id="nnOutStand"></b></div><span id="nnOutStandVal">—</span></div>
+      </div>
+      <p class="nn-note" id="nnLiveNote">Сеть ещё не ходила за вашим столом. Сыграйте против неё или запустите тренировку.</p>
+    </div>
+    <div class="panel">
+      <h3 class="p-head">Тренировка</h3>
+      <div class="nn-actions">
+        <button class="btn btn-primary" id="btnTrain500">▶ +500 раздач</button>
+        <button class="btn btn-primary" id="btnTrain2000">⏩ +2 000 раздач</button>
+        <button class="btn btn-danger" id="btnStop" hidden>■ Стоп</button>
+      </div>
+      <label class="switch-row"><span>Учиться на моих партиях</span><input type="checkbox" id="onlineToggle" checked><i class="switch"></i></label>
+      <div class="nn-actions">
+        <button class="btn btn-ghost" id="btnSaveNet">💾 Сохранить веса (JSON)</button>
+        <button class="btn btn-ghost" id="btnLoadNet">📂 Загрузить веса</button>
+        <button class="btn btn-danger ghost-danger" id="btnResetNet">↺ Сбросить сеть</button>
+      </div>
+      <div class="nn-params"><span>lr <b id="pLr">0.003</b></span><span>γ <b>1.0</b></span><span>batch <b>32</b></span><span>replay <b id="pBuf">0</b></span><span class="saved" id="nnSavedAt">автосохранение включено</span></div>
+    </div>
+    <div class="panel nn-progress">
+      <h3 class="p-head">Прогресс обучения</h3>
+      <div class="legend"><span class="lg gold">Победы дилера, % (MA-200)</span><span class="lg teal">Исследование ε, %</span><span class="lg red">уровень бота</span></div>
+      <div class="chart-wrap"><canvas id="chartMain"></canvas></div>
+      <div class="loss-row"><i>Ошибка TD</i><canvas id="chartLoss"></canvas></div>
+      <div class="strip-row"><i>Последние исходы (глазами игрока):</i><div class="out-strip" id="outStrip"></div></div>
+      <div class="nn-tiles">
+        <div class="stat"><i>Раздач сыграно</i><b id="tEp">0</b></div>
+        <div class="stat gold"><i>Побед дилера</i><b id="tWin">—</b></div>
+        <div class="stat"><i>Средняя награда</i><b id="tReward">—</b></div>
+        <div class="stat lose"><i>Ошибка TD</i><b id="tLoss">—</b></div>
+        <div class="stat"><i>Шагов обучения</i><b id="tSteps">0</b></div>
+        <div class="stat"><i>ε сейчас</i><b id="tEps">1.00</b></div>
+      </div>
+    </div>
+    <div class="panel nn-about">
+      <h3 class="p-head">Как она учится</h3>
+      <p>Сеть играет дилером против игрока, который ходит по базовой стратегии. За каждую победу дилера она получает награду <b>+1</b>, за поражение <b>−1</b>, за ничью <b>0</b>. Метод — <b>Q-обучение</b>: для каждой ситуации сеть хранит оценку выгодности «Ещё» и «Хватит» и после раздачи корректирует её к цели <code>target = награда + γ·max Q(следующая ситуация)</code>.</p>
+      <p>Опыт копится в буфере на 20 000 переходов и перемешивается (experience replay), веса обновляет Adam. Сначала сеть почти всё пробует случайно (ε≈1), затем всё чаще использует выученное (ε→0.05). Она быстро открывает главный секрет дилера: <em>если позади игрока — надо догонять, если впереди — стоять</em>, а дальше шлифует нюансы равных сумм и мягких рук.</p>
+      <p>Красный пунктир на графике — измеренный.winrate классического бота на тех же раздачах: когда золотая кривая уверенно выше него, сеть превзошла казиношные правила. Включённый тумблер «Учиться на моих партиях» дообучает её и на живых играх против вас.</p>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="app-footer">♠ Блэкджек Академия · учебный проект · MIT · реальных денег здесь нет</footer>
+<div id="toasts" aria-live="polite"></div>
+<div id="modalRoot"></div>
+<input type="file" id="nnFile" accept=".json,application/json" hidden>
+<noscript><div style="position:fixed;inset:0;background:#0a0e0c;color:#ece7da;display:grid;place-items:center;font-family:sans-serif;z-index:999">Для игры нужен включённый JavaScript.</div></noscript>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
